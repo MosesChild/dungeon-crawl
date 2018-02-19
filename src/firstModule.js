@@ -49,7 +49,7 @@ export function getRandomInt(min, max) {
  export var doIt = function (count,callBack1,property,property2){
     for (var i=0; i<count; i++){
        callBack1(property,property2)
-    }
+    }   
  }
 
  export function doOdds (num,denom, parameter, parameter2){ 

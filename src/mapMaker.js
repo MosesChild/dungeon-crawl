@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import ReactKonva from 'react-konva';
 import Board from './board'
 const debug=true;
-
 const maxWidth=200, maxHeight=200;
 const {Layer, Rect, Line, Circle, Star, Stage, Group, Text} = ReactKonva; 
 
@@ -20,20 +19,6 @@ var smallerSize = w < h ? w : h
 var scale=smallerSize/maxWidth;
 
 console.log("Mapmaker has loaded Board... ", Board);
-
-
-var directionCoordinates=function(x,y,direction, optionalDistance){
-   if (optionalDistance===undefined){ optionalDistance = 1;  } 
- //  console.log("optionalDistance",optionalDistance)
-//  console.log("directionCoordinates received,",arguments) 
-   direction==="north" ? y = Math.max((y-optionalDistance),0)
-   : direction==="south" ? y = Math.min((y+optionalDistance), maxHeight)
-   : direction==="west" ? x = Math.max((x-optionalDistance),0)
-   :                     x = Math.min((x+optionalDistance),maxWidth)
- //console.log("directionCoordinate update", x,y)
-   return [x,y,direction]
-}
-
 
 export function ArbitraryLine(props){ // takes startXY and endXY coordinate pairs([x,y])
    // and entrances (xy referenced.) which utilizes dash function to present 'open' entrances.)
