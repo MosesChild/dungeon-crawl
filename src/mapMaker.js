@@ -6,6 +6,7 @@ const maxWidth=200, maxHeight=200;
 const {Layer, Rect, Line, Stage, Group, Text} = ReactKonva; 
 
 
+
 // scale... we need to scale player board 200*200 to a canvas
 // start by determining viewPort
 
@@ -43,7 +44,9 @@ export function MakeRoom(props) {
 export class MakeWall extends React.Component {
     constructor(props){
         super(props);
-        this.state={dash: null};
+        this.state={dash: null,
+                    points: null,
+                    rotation: null};
     }
     componentWillMount(){
         // create 'dash' array to show wall entrances...
@@ -84,9 +87,12 @@ export class MakeWall extends React.Component {
             dash: dash,
             rotation: rotation
         })
-        console.log("MakeWall",this.props, "dash", dash, this.props.id)
-
+        console.log("MakeWall Mount",this.props, "dash", dash, this.props.id)
     }
+    shouldComponentUpdate(nextProps,nextState){
+        return !nextState.points!=null
+    }
+
    //will receive startXY, "wall", and entrance array...
 render(){
     let debug=false;
@@ -108,7 +114,7 @@ render(){
 
 
                              
-export class ShowMap extends Component{
+class ShowMap extends Component{
    constructor(props){
       super(props);   
       this.state={walls: [], rooms: []}

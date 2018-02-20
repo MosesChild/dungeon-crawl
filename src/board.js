@@ -6,13 +6,11 @@ import {
     doOdds,
     doIt
 } from './firstModule'
-const roomMargin = 3,
-    entranceWidth = 3;
+
 var Board = {
-    // all the functions  (ReactApp) Dungeon Game requires to build necessary State arrays for a map with creatures and items.
+    // all the functions  (ReactApp) Dungeon-Crawl requires to build State arrays for a map with creatures and items.
     wallCheck: {}, // object stores wall coordinates by row...
-    boardID: 0, // counter to generate ID's Boards.
-    // make a player... (this object does not get updated!!!...)
+    Level: 0, // counter to generate ID's Boards.
     //var player1=new Board.stuff.MakePlayer();
 
     reset: function () {
@@ -21,48 +19,6 @@ var Board = {
         Board.stuff.enemies.length = 0;
         Board.stuff.mapItems.length = 0;
         Board.map.reset();
-    },
-
-    _mapWall: function (wall) { /* takes Map Module generated walls, 
-        and stores all wall coordinates for game logic... 'wallCheck' ...*/
-        
-        const x = wall.startXY[0], y = wall.startXY[1];
-        const start = wall.width ? x : y
-        const end = wall.height ? y + wall.height : x + wall.width
-        const entrances = wall.entrances;
-        const axis = wall.width ? 0 : 1
-        // Set by axis...
-
-        var makeWall = function (x,y) {
-            try {
-                Board.wallCheck["row" + y].push(x)
-            } catch (e) {
-                Board.wallCheck["row" + y] = [x];
-            }
-        }
-        var removeEntrance = function (axis, entrance){
-            if (axis===0){
-                let index=Board.wallCheck['row'+y].indexOf(x+entrance)
-                Board.wallCheck['row' + y].splice(index, entranceWidth)
-            } else {
-                for (let row=y+entrance; row<=y+entranceWidth+entrance; row++ ){
-                    let index=Board.wallCheck["row"+row].indexOf(x+entrance);
-                    Board.wallCheck["row"+row].splice(index,1);
-                }
-            }
-        }
-
-        // makeWall....
-        for (let brick = start; brick <= end; brick++) {
-            if (axis === 0) {
-                makeWall(brick, y);
-            } else {
-                makeWall(x, brick);
-            }
-        }
-        // removeEntrances...
-        entrances.forEach(entrance=>removeEntrance(axis, entrance))
-
     },
 
     placeThing: function () { // random location, random room [x,y] generator.
@@ -89,7 +45,6 @@ var Board = {
         // currently makes (square) building...
         // BoardLevel Equations... level+1 can be the roomCount...
         var roomCount = (level + 5);
-        var side = 20 * (level + 5);
 
         // center the building, make appropriate size for level...
         //var offset = (200 - side) / 2;
@@ -106,31 +61,31 @@ var Board = {
 
 
         // Enemies generated based on next level.
-        Board.stuff.makeEnemies(this.boardID, "ant"); // 1 ant per new Board.
+        Board.stuff.makeEnemies(this.Level, "ant"); // 1 ant per new Board.
         Board.stuff.makeEnemies(level, "orc") // two orcs per Player level...
 
-        Board.boardID++;
+        Board.Level++;
 
         console.log("Board.initialize complete! Board maps, items,", Board.stuff.mapItems, " and enemies", Board.stuff.enemies);
     }
 
 };
 
-//const xAxis=0,yAxis=1;
 
 Board.map = {
     walls: [],
     rooms: [], // acts as a buffer while making building...
     entrances: [], // absolute position for positioning walls!
-    // console.log("Board", Board.boardID, Board);
+    // console.log("Board", Board.Level, Board);
     buildings: [],
-    entranceWidth: 6,
-    thisroomMargin: 3, // a minimum distance between a wall and a door.
+    roomMargin: 3,  
+    entranceWidth: 3,
+
     createRoom: function (startX, startY, width, height, entranceCount) {
         var room = {};
         room.roomID = this.rooms.length;
         if (typeof startX === 'object') { //alternate object creation for already defined rooms(used by splitRoom!)
-            room.boardID = Board.boardID;
+            room.Level = Board.Level;
             room.startXY = startX.startXY;
             room.endXY = [startX.startXY[0] + startX.width, startX.startXY[1] + startX.height];
             room.width = startX.width;
@@ -165,11 +120,11 @@ Board.map = {
             var entrance;
             console.log("_randomEntrancesObject", direction)
             if (direction === "north" || direction === "south"){
-                entrance = getRandomInt(this.roomMargin, (width - this.roomMargin))
+                entrance = getRandomInt(Board.map.roomMargin, (width - Board.map.roomMargin))
                     
             } else {
                 
-                entrance = getRandomInt(this.roomMargin, (height - this.roomMargin))
+                entrance = getRandomInt(Board.map.roomMargin, (height - Board.map.roomMargin))
             randomEntrances[direction].push(entrance);
             }
         }
@@ -210,38 +165,39 @@ Board.map = {
         console.log("_pushWalls", room)
         var ids = {
             roomID: room.roomID,
-            boardID: Board.boardID,
+            Level: Board.Level,
         };
         Board.map.walls.push(Object.assign({
             wall: "north",
             startXY: [startX, startY],
             width: width,
             entrances: entrances["north"],
-            id: Board.boardID + "exteriorWall" + this.walls.length
+            id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
         Board.map.walls.push(Object.assign({
             wall: "south",
             startXY: [startX, startY + height],
             width: width,
             entrances: entrances["south"],
-            id: Board.boardID + "exteriorWall" + this.walls.length
+            id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
         Board.map.walls.push(Object.assign({
             wall: "west",
             startXY: [startX, startY],
             height: height,
             entrances: entrances["west"],
-            id: Board.boardID + "exteriorWall" + this.walls.length
+            id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
         Board.map.walls.push(Object.assign({
             wall: "east",
             startXY: [startX + width, startY],
             height: height,
             entrances: entrances["east"],
-            id: Board.boardID + "exteriorWall" + this.walls.length
+            id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
     },
     _addEntrance: function (room, wall, entrance) {
+        const entranceWidth=Board.map.entranceWidth, roomMargin = Board.map.roomMargin
         if (!room.entrances) {
             room.entrances = {}
         }
@@ -249,13 +205,15 @@ Board.map = {
             wall = randomDirection();
         }
         (wall === "west" || wall === "east") ?
-        entrance = getRandomInt(roomMargin, (room.height - (entranceWidth + roomMargin))): entrance = getRandomInt(roomMargin, (room.width - (entranceWidth + roomMargin)))
+        entrance = getRandomInt(Board.map.roomMargin, (room.height - (entranceWidth + roomMargin)))
+        : entrance = getRandomInt(Board.map.roomMargin, (room.width - (entranceWidth + roomMargin)))
         if (room.entrances[wall] === undefined) {
             room.entrances[wall] = [];
         }
         var entrances = room.entrances[wall]
         // console.log("addEntrance", room, entrances, wall, entrance);
-        if (!entrances.some(x => x < entrance + entranceWidth + roomMargin && x > entrance - (entranceWidth + roomMargin))) {
+        if (!entrances.some(x => x < entrance + entranceWidth + 
+            Board.map.roomMargin && x > entrance - (entranceWidth + roomMargin))) {
             entrances.push(entrance)
             entrances = entrances.sort(function (a, b) {
                 return a - b;
@@ -267,8 +225,7 @@ Board.map = {
         return room;
     },
     findSplitPoint: function (source, axis) {
-        let entranceWidth = Board.map.entranceWidth,
-            roomMargin = Board.map.roomMargin;
+        const entranceWidth=Board.map.entranceWidth, roomMargin = Board.map.roomMargin
         let avoid, splitPoint;
 
         axis === 0 ? avoid = joinArrays(source.entrances.north, source.entrances.south) :
@@ -288,7 +245,7 @@ Board.map = {
             splitPoint = getRandomInt(entranceWidth, splitWall - entranceWidth);
         }
 
-        console.log("splitPoint Successful", splitPoint);
+       // console.log("splitPoint Successful", splitPoint);
         return splitPoint;
     },
     splitRoom: function (room, axis, splitPoint, doorCount) {
@@ -342,7 +299,7 @@ Board.map = {
                     startXY: [],
                     entrances: room.entrances.east,
                     height: room.height,
-                    boardID: Board.boardID,
+                    Level: Board.Level,
                 //    buildingID: room.buildingID,
                     id: null
                 }
@@ -380,7 +337,7 @@ Board.map = {
                     wall: "south",
                     entrances: room.entrances.south,
                     width: room.width,
-                    boardID: Board.boardID,
+                    Level: Board.Level,
                   //  buildingID: room.buildingID
                 }
             }
@@ -404,11 +361,11 @@ Board.map = {
         room2 = this.createRoom(room2)
 
         //newWall.id=room.buildingID+"room"+room.roomID+"wall"+room2.roomID
-        newWall.id = Board.boardID + "interiorWall" + room2.roomID;
+        newWall.id = Board.Level + "interiorWall" + room2.roomID;
         newWall.startXY = room2.startXY;
 
         // push to wallCheck array...
-        Board._mapWall(newWall);
+        this._mapWall(newWall);
         // and walls array...
         this.walls.push(newWall) // adds newWall to walls array... Useful for drawing because it is the bare minimum needed to describe the building. 
         //   rooms.push(room2)
@@ -417,57 +374,50 @@ Board.map = {
             newWall: newWall
         }
     },
+    _mapWall: function (wall) { /*  Takes wall objects from (Board.map.walls) , 
+        and stores all wall coordinates for game logic in 'Board.wallCheck' ( used by App.checkspot ) */
+        const entranceWidth=Board.map.entranceWidth;
+        const x = wall.startXY[0], y = wall.startXY[1];
+        const start = wall.width ? x : y
+        const end = wall.height ? y + wall.height : x + wall.width
+        const entrances = wall.entrances;
+        const axis = wall.width ? 0 : 1
+        // Set by axis...
+
+        var makeWall = function (x,y) {
+            try {
+                Board.wallCheck["row" + y].push(x)
+            } catch (e) {
+                Board.wallCheck["row" + y] = [x];
+            }
+        }
+        var removeEntrance = function (axis, entrance){
+            if (axis===0){
+                let index=Board.wallCheck['row'+y].indexOf(x+entrance)
+                Board.wallCheck['row' + y].splice(index, entranceWidth)
+            } else {
+                for (let row=y+entrance; row <= y + entranceWidth + entrance; row++ ){
+                    let index=Board.wallCheck["row"+row].indexOf( x  +entrance );
+                    Board.wallCheck["row"+row].splice(index,1);
+                }
+            }
+        }
+        // makeWall....
+        for (let brick = start; brick <= end; brick++) {
+            if (axis === 0) {
+                makeWall(brick, y);
+            } else {
+                makeWall(x, brick);
+            }
+        }
+        // removeEntrances...
+        entrances.forEach(entrance=>removeEntrance(axis, entrance))
+
+    },
     assignBuildingID: function () {
         return Board.map.buildingID++;
     },
-    /*
-    createBuilding: function(startX=0,startY=0, width, height, entranceCount=1){
-       // Random building size. This version will make 'full map' building (200*200)
-       const wallMin=6; 
-       // start by making a Room, which is the 'outline' of the whole building...
-       var outline=Board.map.createRoom(startX,startY, 200, 200, 1) ;
-       // create building ID.
-      // outline.buildingID = this.buildings!=undefined ? this.buildings.length : 0;
-        console.log("createBuilding outline", outline);
-       // create building obj to hold all building info, including a rooms array with the first Room.
-       var buildingObj= Object.assign({ buildingID: this.assignBuildingID, rooms: [], walls: [] }, outline)
-
-       // add the current walls to the buildingObj...
-       buildingObj=this._addWalls(buildingObj);
-      // Board.map.rooms.push(buildingObj)
-       //this.buildings.push(buildingObj); // add building to buildings array.
-       console.log( "createBuilding", Board.map.rooms);
-    return buildingObj
-    },
-
-makeBuilding : function(roomCount=1, entranceCount=1, startXY=[0,0], width, height ){
-
-    var building=this.createBuilding(startXY[0],startXY[1], width, height, entranceCount); 
-        function splitBuilding(){            
-        var pick=getRandomInt(0, building.rooms.length-1) // picks a room at random...
-        var currentRoom=Board.map.rooms[pick];
-        console.log("pick", currentRoom, pick)
-        var axis;  
-        // the following lines make it more likely to split a room by its longer axis.
-        if (currentRoom.width > 15 && currentRoom.height > 15){  
-            currentRoom.width > currentRoom.height ?
-            axis=doOdds(5,1,0,1):
-            axis=doOdds(1,5,0,1)
-
-            var result=Board.map.splitRoom(currentRoom, axis);
-            
-            result.newRoom.buildingID=currentRoom.buildingID;
-            Board.map.rooms.push(result.newRoom);
-            Board.map.walls.push(result.newWall)
-        } 
-        if (building.rooms.length<roomCount){
-            splitBuilding
-        }
-    }
-    splitBuilding();
-},
-*/
-
+/********* currently not implemented-  this can distribute (place) enemies and items in specific rooms ******** */
     placeInRoom: function (room) {
         var xMin = room.startXY[0] + 1,
             yMin = room.startXY[1],
@@ -490,10 +440,10 @@ makeBuilding : function(roomCount=1, entranceCount=1, startXY=[0,0], width, heig
 
 Board.stuff = (function () {
     var my = {}
-    my.mapItems = [];
-    my.enemies = [];
+    my.mapItems = []; // current items get stored here during initialize.
+    my.enemies = [];  // current enemies get stored here during initialize.
     my.direction = ["north", "south", "east", "west", "none"];
-    my.enemyCount = 0; // Used to make ID's, reset by Board.initialize!
+    my.enemyCount = 0; // Used to make enemies (ids/keys), reset by Board.initialize!
     my.enemyType = {
         orc: {
             name: "orc",
@@ -513,33 +463,14 @@ Board.stuff = (function () {
         }
     }
     my.levelData = {
-        1: {
-            xp: 0,
-            health: 10
-        },
-        2: {
-            xp: 10,
-            health: 20
-        },
-        3: {
-            xp: 20,
-            health: 30
-        },
-        4: {
-            xp: 30,
-            health: 40
-        },
-        5: {
-            xp: 30,
-            health: 50
-        }
+        1: {  xp: 0,  health: 10 },
+        2: {  xp: 10, health: 15 },
+        3: {  xp: 20,  health: 20 },
+        4: {  xp: 30,  health: 25 },
+        5: { xp: 40, health: 30 }
     };
 
-    my.weapons = {
-        dagger: 3,
-        axe: 5,
-        sword: 7
-    }
+    my.weapons = { dagger: 3, axe: 5, sword: 7 }
 
     my.player = {
         frame: 0,
@@ -552,15 +483,15 @@ Board.stuff = (function () {
         level: 1,
         items: []
     }
-    my.awardXP = function (type) {
+    my.awardXP = function (type) {   // provides reactApp proper XP for killed enemies.
         var enemy = my.enemyType[type]
         return (enemy.health + enemy.damage + enemy.awareness) / enemy.speed
     }
-    my.randomWeapon = function () {
+    my.randomWeapon = function () {  // used by 'my.addRandomItem' 
         var weapons = Object.keys(Board.stuff.weapons);
         return weapons[getRandomInt(0, (weapons.length - 1))]
     }
-    my.makeEnemies = function (count, type) {
+    my.makeEnemies = function (count, type) {  // used by initialize...
         var enemyCount = Board.stuff.enemyCount;
         for (var i = enemyCount; i < (count + enemyCount); i++) {
             console.log("enemyCount", enemyCount, i)
@@ -569,7 +500,7 @@ Board.stuff = (function () {
             console.log("count", count, "type", type, "i", i, "location", location, stuff)
             my.enemies.push(Object.assign({
                 frame: 0,
-                id: Board.boardID + "enemy" + i,
+                id: Board.Level + "enemy" + i,
                 x: location[0],
                 y: location[1],
                 direction: randomDirection()
@@ -581,7 +512,7 @@ Board.stuff = (function () {
         var item = {},
             location = Board.placeThing();
         console.log(my.mapItems, "mapItems", my.mapItems.length);
-        my.mapItems.length !== 0 ? item.id = Board.boardID + "item" + my.mapItems.length : item.id = Board.boardID + "item" + 0;
+        my.mapItems.length !== 0 ? item.id = Board.Level + "item" + my.mapItems.length : item.id = Board.Level + "item" + 0;
         item.value = value;
         item.type = type;
         item.x = location[0];

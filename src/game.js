@@ -32,7 +32,7 @@ var directionCoordinates=function(x,y,direction, optionalDistance){
     : direction==="south" ? y = Math.min((y+optionalDistance), maxHeight)
     : direction==="west" ? x = Math.max((x-optionalDistance),0)
     : direction==="east" ? x = Math.min((x+optionalDistance),maxWidth)
-    : null
+    : direction="none"
   //console.log("directionCoordinate update", x,y)
     return [x,y,direction]
  }
@@ -100,10 +100,9 @@ export function Enemy(props){
       return (<Group>{ant}</Group>);
    }
 }
- 
-//<CrossHairs x={props.x} y={props.y}/>
 
-export class Player extends React.Component {
+
+class Player extends React.Component {
    constructor(props){
       super(props);
       this.state={
@@ -111,6 +110,7 @@ export class Player extends React.Component {
       }
    }
    componentWillReceiveProps(nextProps){
+     console.log("Player receives props", nextProps)
      if (nextProps.direction!==this.state.facing && nextProps.direction!=="none"){
        this.setState({facing: nextProps.direction})
      }
@@ -123,21 +123,21 @@ export class Player extends React.Component {
     var points, offsetX, offsetY, way=this.state.facing;
 
     offsetX = offsetY = 0;
-  
-      way === "north" ? (points = [x, y, (x - 1), y, x, (y - 1), (x + 1), y], offsetY = 0)
-        : way === "south" ? (points = [x, y, (x - 1), y, x, y + 1, (x + 1), (y)], offsetY = 0)
-          : way === "west" ? (points = [x, y, x, (y - 1), x - 1, (y), x, (y + 1)], offsetX = 0)
-            : way === "east" ? (points = [x, y, x, (y - 1), x + 1, y, x, (y + 1)], offsetX = 0)
-            : null;
-    
+
+    points = (way === "north") ? [x, y, (x - 1), y, x, (y - 1), (x + 1), y] : 
+    (way === "south") ? [x, y, (x - 1), y, x, y + 1, (x + 1), (y)] : 
+    (way === "west") ? [x, y, x, (y - 1), x - 1, (y), x, (y + 1)] : 
+    (way === "east" )? [x, y, x, (y - 1), x + 1, y, x, (y + 1)] :
+     "error"
     
     return (<Group>
-      <Line points={points} stroke='blue' offsetX={offsetX} offsetY={offsetY}
+      <Line points={points} stroke='blue'
         strokeWidth={1} lineCap='round' lineJoin='round' dash={[0, 1, 5]} />
-      <CrossHairs x={this.props.XY[0]} y={this.props.XY[1]}/>
     </Group>);
-  }
+  }//       <CrossHairs x={this.props.XY[0]} y={this.props.XY[1]}/>
 }
+
+
 function CrossHairs(props){
    var x=props.x, y=props.y;
    var crossHairs=[x,y,x-2,y,x+2,y,x,y,x,y-2,x,y+2];
@@ -154,7 +154,7 @@ function Item(props){
       return (<Line x={props.x} y={props.y} points={[0,0,0,-1,1,-1,1,0,2,1,-1,1,0,0]} strokeWidth={.5} scaleX={.7} stroke={color} />)
    }
 }
-export class ItemContainer extends React.Component{
+class ItemContainer extends React.Component{
    render(){
       var items=this.props.items.map(item=><Item key={item.id} {...item} />);
    
@@ -169,6 +169,9 @@ class PlayMap extends React.Component{
         walls: this.props.walls,
         rooms: this.props.rooms
       };
+   }
+   componentWillMount(){
+    console.log("PlayMap Mount", this.props)
    }
 
    handleClick(e){
@@ -188,41 +191,40 @@ class PlayMap extends React.Component{
          return {x: 0, y: 0, width: w, height: h}
       }
    }
-
       render (){ 
-        let props=this.makeWindow()
-        var walls=this.state.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
-        var rooms=this.state.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);
-        var items=this.props.items.map(item=><Item key={item.id} {...item} />);
-        const Darkness = ()=> <Rect x={0} y={0} width={w} fill="black" height={h}/>
-         console.log("PlayMap", this.props)
-      //   var reactWalls=this.props.walls.map(wall=><MakeWall key={wall.id} wall={wall.wall} startXY={wall.startXY} width={wall.width} height={wall.height} entrances={wall.entrances}/>);   
+// must find a way to not render walls after first making them...
+       const walls=this.state.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
+       const rooms=this.state.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);
+       const items= this.props.items ? this.props.items.map(item=><Item key={item.id} {...item} />) : null
+        var enemies = this.props.enemies.map((enemy) => <Enemy key={enemy.id} {...enemy} />);        
 
+        /* Darkness is a constant layer for map beyond player 'awareness' */
+
+        const Darkness = ()=> <Rect x={0} y={0} width={w} fill="black" height={h}/>
+
+        /* PlayerVisionWindow component clips map and objects outside of player 'awareness' */
+        const window=this.makeWindow();
+
+        console.log("PlayMap renders", this.props)
         return (
           <Stage className="canvas" width={w} height={h} scale={{ x: scale, y: scale }} onClick={this.handleClick}>
-
             <Layer >
               <Darkness />
             </Layer>
-            <Layer clipX={props.x} clipY={props.y} clipWidth={props.width} clipHeight={props.height}>
-              <Rect x={props.x} y={props.y} width={props.width} fill="white" height={props.height} />
-              <Player XY={this.props.playerXY} direction={this.props.direction} />
-              <Group>
-                {walls}
-                {rooms}
-                {items}
-                {this.props.enemies.map((enemy) => <Enemy key={enemy.id} {...enemy} />)}
-              </Group>
-            </Layer>
+              <Layer clipX={window.x} clipY={window.y} clipWidth={window.width} clipHeight={window.height}>
+              <Rect x={window.x} y={window.y} width={window.width} fill="white" height={window.height} />
+                <Player XY={this.props.playerXY} direction={this.props.direction} />
+                <Group>
+                  {walls}
+                  {rooms}
+                  {items}
+                  {enemies} 
+                </Group>
+              </Layer>
           </Stage>);
       };
     }
-      /*
-        
-                  <Layer>
-                  <Darkness dark={this.props.dark} side={this.state.side}  />
-               </Layer>
-  */
+
 
 export class App extends React.Component{
    constructor(props){
@@ -236,7 +238,6 @@ export class App extends React.Component{
          rooms: Board.map.rooms,
          wallCheck: Board.wallCheck,
          enemies: Board.stuff.enemies,
-
          items: Board.stuff.mapItems,
          goFrame: "true",
          dark: "true"
@@ -299,8 +300,8 @@ export class App extends React.Component{
       
       player.xp+=newXP
       
-      var message="Board complete, "+ newXP +"xp awarded.";  
-      levelUp(newXP) ? message+="You have acheived level "+ player.level+"!"
+      var message="Board complete, "+ newXP +"xp awarded." + 
+      levelUp(newXP) ? "You have acheived level "+ player.level+"!"
          : ""
 
       console.log("boardComplete...")
@@ -513,7 +514,7 @@ export class App extends React.Component{
             items=getItem(checkAhead.item);// returns updated items
 
          } else if (checkAhead.enemy.length===1 ){ // if hit enemy...
-            let enemy=attack(checkAhead.enemy[0])
+            attack(checkAhead.enemy[0])
             //console.log("encounter Enemy",  checkAhead.enemy[0].id, enemies);
 
          } else if (checkAhead.wall!=="wall"){// if not a wall
@@ -523,7 +524,7 @@ export class App extends React.Component{
          ahead=directionCoordinates(x,y,direction);  //2nd attack check after move!
          checkAhead=this.checkSpot(ahead);
          if (checkAhead.enemy.length===1 ){
-            let enemy=attack(checkAhead.enemy[0]);
+            attack(checkAhead.enemy[0]);
          }
          player.frame=0;
       }
