@@ -10,7 +10,7 @@ const roomMargin = 3,
     entranceWidth = 3;
 var Board = {
     // all the functions  (ReactApp) Dungeon Game requires to build necessary State arrays for a map with creatures and items.
-    wallcheck: {}, // object to stores wall coordinates by row...
+    wallCheck: {}, // object stores wall coordinates by row...
     boardID: 0, // counter to generate ID's Boards.
     // make a player... (this object does not get updated!!!...)
     //var player1=new Board.stuff.MakePlayer();
@@ -25,49 +25,44 @@ var Board = {
 
     _mapWall: function (wall) { /* takes Map Module generated walls, 
         and stores all wall coordinates for game logic... 'wallCheck' ...*/
+        
+        const x = wall.startXY[0], y = wall.startXY[1];
+        const start = wall.width ? x : y
+        const end = wall.height ? y + wall.height : x + wall.width
+        const entrances = wall.entrances;
+        const axis = wall.width ? 0 : 1
+        // Set by axis...
 
-        console.log("_mapWall", wall);
-        var x = wall.startXY[0],
-            y = wall.startXY[1],
-            width = wall.width,
-            height = wall.height,
-            start, end,
-            entrances = wall.entrances;
-        // Set variables by axis...
-        if (width !== undefined) {
-            start = x;
-            end = x + width;
-        } else {
-            start = y;
-            end = y + height;
-        };
-
-        var enterCoord = function (row, x) {
+        var makeWall = function (x,y) {
             try {
-                this.wallCheck["row" + row].push(x)
+                Board.wallCheck["row" + y].push(x)
             } catch (e) {
-                this.wallCheck["row" + row] = [x];
+                Board.wallCheck["row" + y] = [x];
             }
         }
-        var fillSegment = function (startSeg, endSeg) {
-            for (var i = startSeg; i < endSeg; i++) {
-                if (width !== undefined) {
-                    enterCoord(y, i)
-                } else {
-                    enterCoord(i, x)
+        var removeEntrance = function (axis, entrance){
+            if (axis===0){
+                let index=Board.wallCheck['row'+y].indexOf(x+entrance)
+                Board.wallCheck['row' + y].splice(index, entranceWidth)
+            } else {
+                for (let row=y+entrance; row<=y+entranceWidth+entrance; row++ ){
+                    let index=Board.wallCheck["row"+row].indexOf(x+entrance);
+                    Board.wallCheck["row"+row].splice(index,1);
                 }
             }
         }
-        var pointer = start;
-        //   console.log(start, end, x, y, pointer, entrances)
 
-        if (entrances !== undefined) {
-            entrances.forEach(entrance => {
-                fillSegment(pointer, pointer + entrance);
-                pointer = pointer + entrance + this.entranceWidth;
-            })
+        // makeWall....
+        for (let brick = start; brick <= end; brick++) {
+            if (axis === 0) {
+                makeWall(brick, y);
+            } else {
+                makeWall(x, brick);
+            }
         }
-        fillSegment(pointer, end);
+        // removeEntrances...
+        entrances.forEach(entrance=>removeEntrance(axis, entrance))
+
     },
 
     placeThing: function () { // random location, random room [x,y] generator.
@@ -101,9 +96,7 @@ var Board = {
 
         // create a map, (Board.map)
         Board.map.createDungeon(roomCount);
-
-        //  Add all Board.map.wall's data available to wallCheck array.  
-
+        console.log(Board)
 
         // Initialize items and enemies...
         // Distribute  health across potions in different locations.
@@ -314,7 +307,7 @@ Board.map = {
         var newWall;
         var room2 = { // start with a blank room2 to put entrances in....
             entrances: {},
-            buildingID: source.buildingID
+         //   buildingID: source.buildingID
         };
         //  Create random arguments (axis, splitpoint) if necessary...
         if (axis === undefined) {
@@ -350,7 +343,7 @@ Board.map = {
                     entrances: room.entrances.east,
                     height: room.height,
                     boardID: Board.boardID,
-                    buildingID: room.buildingID,
+                //    buildingID: room.buildingID,
                     id: null
                 }
             };
@@ -388,7 +381,7 @@ Board.map = {
                     entrances: room.entrances.south,
                     width: room.width,
                     boardID: Board.boardID,
-                    buildingID: room.buildingID
+                  //  buildingID: room.buildingID
                 }
             }
             if (west) {
@@ -409,9 +402,14 @@ Board.map = {
         }
         console.log("room1", room, "room2", room2)
         room2 = this.createRoom(room2)
+
         //newWall.id=room.buildingID+"room"+room.roomID+"wall"+room2.roomID
         newWall.id = Board.boardID + "interiorWall" + room2.roomID;
         newWall.startXY = room2.startXY;
+
+        // push to wallCheck array...
+        Board._mapWall(newWall);
+        // and walls array...
         this.walls.push(newWall) // adds newWall to walls array... Useful for drawing because it is the bare minimum needed to describe the building. 
         //   rooms.push(room2)
         return {

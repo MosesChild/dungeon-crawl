@@ -1,0 +1,64 @@
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0 0;
+  padding: 0 0;
+  color: black;
+  background: white; }
+
+#board {
+  position: absolute;
+  width: 100%;
+  height: 95vh; }
+
+.boardItem {
+  display: inline-block;
+  width: 25%;
+  height: 5%;
+  text-align: center; }
+  .boardItem p {
+    margin: 0;
+    padding: 0; }
+
+.square {
+  float: left;
+  width: .5%;
+  height: .5%; }
+
+.floor {
+  background: gray; }
+
+.enemy {
+  background: red; }
+
+.item {
+  background: yellow; }
+
+.player {
+  background: blue; }
+
+.wall {
+  background: black; }
+
+#warning {
+  position: fixed;
+  font-size: 20px;
+  z-index: 0;
+  bottom: 100px;
+  left: 100px;
+  background: gray;
+  color: white; }
+
+.GameMessage {
+  font-family: 'Open Sans', sans-serif;
+  color: white;
+  text-align: center;
+  background: black;
+  position: absolute;
+  padding-top: 35;
+  width: 60%;
+  height: 24%;
+  top: 40%;
+  left: 20%;
+  z-index: 3;
+  opacity: .7; }
