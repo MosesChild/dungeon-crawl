@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import ReactKonva from 'react-konva';
 import Board from './board'
-const debug=true;
+
 const maxWidth=200, maxHeight=200;
 const {Layer, Rect, Line, Stage, Group, Text} = ReactKonva; 
 
@@ -13,7 +13,7 @@ var w = .98* Math.max(document.documentElement.clientWidth, window.innerWidth ||
 var h = .92* Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 
 //subtract size of BoardItems & ToggleDarkness
-
+const debug=true;
 var biggerSize = w > h ? w : h 
 var smallerSize = w < h ? w : h
 var scale=smallerSize/maxWidth;
@@ -32,6 +32,7 @@ export function MakeRoom(props) {
             text={props.roomID.toString(10)} fill='blue' align='center'
             fontSize={fontSize} fontStyle="bold" opacity={.1}/>);
     }
+
     return (<Group>
         {labels}
     </Group>);
@@ -87,14 +88,14 @@ export class MakeWall extends React.Component {
 
     }
    //will receive startXY, "wall", and entrance array...
-   render(){
-        var color="red", strokeWidth=.5;
-        let debug=true;
-        let labels;
-        if (debug === true) {
-            labels = (<Text x={this.props.startXY[0]} y={this.props.startXY[1]} text={this.props.id} fill='green'
-            fontSize={10} rotation={this.state.rotation} />)
-       }
+render(){
+    let debug=false;
+    var color="red", strokeWidth=.5;
+    let labels;
+    if (debug) {
+        labels = (<Text x={this.props.startXY[0]} y={this.props.startXY[1]} text={this.props.id} fill='green'
+        fontSize={10} rotation={this.state.rotation} />)
+    }
     
 
       return (<Group>

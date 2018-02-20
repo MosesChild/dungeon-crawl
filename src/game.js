@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactKonva from 'react-konva';
 import Board from './board'
-import {MakeWall} from './mapMaker'
+import {MakeWall, MakeRoom} from './mapMaker'
 import {randomDirection, doOdds} from './firstModule';
 
 var framesPerSecond=30, frameLength=1000/framesPerSecond;
@@ -47,11 +47,7 @@ export function GameMessage(props){
             </div>);
    }
 }
-function Darkness(props){
-   var fill, dark=props.dark;
-   dark==="true" ? fill="black" : fill="white"
-      return <Rect width={props.side} height={props.side} fill={fill}/>
-}
+
 
 function Weapon(props){
    var x=props.x, y=props.y;
@@ -170,37 +166,14 @@ class PlayMap extends React.Component{
    constructor(props){
       super(props);   
       this.state={
+        walls: this.props.walls,
+        rooms: this.props.rooms
       };
-      this.handleClick=this.handleClick.bind(this);
    }
 
-   /**
-   * Calculate & Update state of new dimensions
-   */
-   updateDimensions() {
-      let update_width  =Math.round(.98* Math.max(document.documentElement.clientWidth, window.innerWidth || 0));
-      let update_height =Math.round(.92* Math.max(document.documentElement.clientHeight, window.innerHeight || 0));
-      let side = update_width < update_height ? update_width : update_height 
-      let scale=side/Board.maxWidth;
-      this.setState({ side: side, scale: scale});
-   }
-     /**
-   * Add event listener
-   */
-  componentDidMount() {
-    this.updateDimensions();
-    window.addEventListener("resize", this.updateDimensions.bind(this));
-  }
-
-  /**
-   * Remove event listener
-   */
-  componentWillUnmount() {
-    window.removeEventListener("resize", this.updateDimensions.bind(this));
-  }
    handleClick(e){
-      console.log("handleClick",e);
-      this.props.startBoard();
+      //console.log("handleClick",e);
+      //this.props.startBoard();
    }
    makeWindow(){
       var x=this.props.playerXY[0], y=this.props.playerXY[1], awareness=this.props.awareness;
@@ -212,28 +185,31 @@ class PlayMap extends React.Component{
             height : awareness * 2
          }
       } else {
-         return {x: 0, y: 0, width: this.state.side, height: this.state.side}
+         return {x: 0, y: 0, width: w, height: h}
       }
    }
 
       render (){ 
-
-         var items=this.props.items.map(item=><Item key={item.id} {...item} />);
-         var reactWalls=this.props.walls.map(wall=><MakeWall key={wall.id} wall={wall.wall} startXY={wall.startXY} width={wall.width} height={wall.height} entrances={wall.entrances}/>);   
+        let props=this.makeWindow()
+        var walls=this.state.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
+        var rooms=this.state.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);
+        var items=this.props.items.map(item=><Item key={item.id} {...item} />);
+        const Darkness = ()=> <Rect x={0} y={0} width={w} fill="black" height={h}/>
+         console.log("PlayMap", this.props)
+      //   var reactWalls=this.props.walls.map(wall=><MakeWall key={wall.id} wall={wall.wall} startXY={wall.startXY} width={wall.width} height={wall.height} entrances={wall.entrances}/>);   
 
         return (
           <Stage className="canvas" width={w} height={h} scale={{ x: scale, y: scale }} onClick={this.handleClick}>
 
-            <Layer>
-              <Darkness dark={this.props.dark} side={this.state.side} />
+            <Layer >
+              <Darkness />
             </Layer>
-            <Layer clip={this.makeWindow()} >
-
-              <Rect x={0} y={0} width={this.state.side} fill="white" height={this.state.side} />
+            <Layer clipX={props.x} clipY={props.y} clipWidth={props.width} clipHeight={props.height}>
+              <Rect x={props.x} y={props.y} width={props.width} fill="white" height={props.height} />
               <Player XY={this.props.playerXY} direction={this.props.direction} />
-
               <Group>
-                {reactWalls}
+                {walls}
+                {rooms}
                 {items}
                 {this.props.enemies.map((enemy) => <Enemy key={enemy.id} {...enemy} />)}
               </Group>
@@ -242,7 +218,7 @@ class PlayMap extends React.Component{
       };
     }
       /*
-        <Rect x={0} y={0} width={this.state.side} fill="white" height={this.state.side}  />
+        
                   <Layer>
                   <Darkness dark={this.props.dark} side={this.state.side}  />
                </Layer>
@@ -257,8 +233,10 @@ export class App extends React.Component{
          x: 100,
          y: 100,
          walls: Board.map.walls,
+         rooms: Board.map.rooms,
          wallCheck: Board.wallCheck,
          enemies: Board.stuff.enemies,
+
          items: Board.stuff.mapItems,
          goFrame: "true",
          dark: "true"
@@ -277,8 +255,6 @@ export class App extends React.Component{
    componentDidMount(){
       console.log("APP didMount",this.state);
       var c=this.state;
-
-      
       this.doFrame(100, 100, c.player, c.enemies, c.items, "true")
    }
    
@@ -288,6 +264,7 @@ export class App extends React.Component{
       this.setState({
          gameMessage: null,
          walls: Board.map.walls,
+         rooms: Board.map.rooms,
          enemies: Board.stuff.enemies,
          items: Board.stuff.mapItems,
          wallCheck: Board.wallCheck,
@@ -302,9 +279,7 @@ export class App extends React.Component{
    boardComplete(player,enemies){
     var calculateXP = function(){
          var boardXP=0;  //calculate XP for level...
-
          enemies.forEach(enemy=> boardXP+=Board.stuff.awardXP(enemy.name) );  
-                 
          return Math.round(boardXP);       
       }
       
@@ -316,7 +291,7 @@ export class App extends React.Component{
             player.level=(player.level+1);
             player.health=(nextLevelHealth);
             return true; 
-         }//else {  return false}; 
+         }
 
       } 
       
@@ -393,6 +368,10 @@ export class App extends React.Component{
          }
       } else {
          this.setState({direction: direction})
+      }
+      if (this.state.enemies===0){
+        this.startBoard();
+        
       }
    }
    
@@ -560,7 +539,7 @@ export class App extends React.Component{
                <GameMessage text={this.state.gameMessage} />
                <ScoreBoard xp={this.state.player.xp} level={this.state.player.level} health={this.state.player.health} weapon={this.state.player.weapon}/>
                <PlayMap enemies={this.state.enemies} items={this.state.items} walls={this.state.walls} wallCheck={this.state.wallCheck} dark={this.state.dark} playerXY={[this.state.x,this.state.y]} 
-               direction={this.state.direction} awareness={this.state.player.awareness} startBoard={this.startBoard}/>
+               rooms={this.state.rooms} direction={this.state.direction} awareness={this.state.player.awareness} startBoard={this.startBoard}/>
               
                <input type="button" value="toggle Darkness" onClick={this.toggleDark}/>
             </div>

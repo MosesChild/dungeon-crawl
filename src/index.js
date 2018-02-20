@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './dungeon.css';
-import {ShowMap} from './mapMaker';
+//import {ShowMap} from './mapMaker';
 import {App} from './game';
-//import Board from './board.js';
+
 
 
 import registerServiceWorker from './registerServiceWorker';

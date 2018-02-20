@@ -2,14 +2,10 @@ body {
   width: 100%;
   height: 100%;
   margin: 0 0;
-  padding: 0 0;
-  color: black;
-  background: white; }
+  padding: 0 0; }
 
 #board {
-  position: absolute;
-  width: 100%;
-  height: 95vh; }
+  position: absolute; }
 
 .boardItem {
   display: inline-block;
@@ -20,25 +16,8 @@ body {
     margin: 0;
     padding: 0; }
 
-.square {
-  float: left;
-  width: .5%;
-  height: .5%; }
-
-.floor {
-  background: gray; }
-
-.enemy {
-  background: red; }
-
-.item {
-  background: yellow; }
-
-.player {
-  background: blue; }
-
-.wall {
-  background: black; }
+.room {
+  background: "black"; }
 
 #warning {
   position: fixed;
