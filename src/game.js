@@ -7,7 +7,9 @@ import {randomDirection, doOdds} from './firstModule';
 var framesPerSecond=30, frameLength=1000/framesPerSecond;
 const {Layer, Rect, Line, Circle, Star, Stage, Group} = ReactKonva; 
 const debug=true;
-const maxWidth=200, maxHeight=200;
+const maxWidth=Board.map.maxWidth;
+const maxHeight=Board.map.maxHeight;
+
 var warning=[]
 
 
@@ -17,11 +19,9 @@ var warning=[]
 var w = .98* Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
 var h = .92* Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 
-//subtract size of BoardItems & ToggleDarkness
-
-//var biggerSize = w > h ? w : h 
 var smallerSize = w < h ? w : h
 var scale=smallerSize/maxWidth;
+
 
 
 var directionCoordinates=function(x,y,direction, optionalDistance){
@@ -37,13 +37,18 @@ var directionCoordinates=function(x,y,direction, optionalDistance){
     return [x,y,direction]
  }
 
-export function GameMessage(props){
-   
+export function GameMessage(props){  
    if (props.text==null){
       return (<div></div>);
    } else {
+     if (props.text==="GAME OVER"){
+      const nextText="Press any key to Restart"
+      Board.reset();
+     }
+     const nextText="Press any key to continue"
       return (<div className="GameMessage">
          <h1>{props.text}</h1>
+         <p> { nextText } </p>
             </div>);
    }
 }
@@ -77,7 +82,7 @@ export function BoardItem(props){
 
 export function ScoreBoard(props){
    return (
-      <div>  
+      <div id="board">  
          <BoardItem title="Experience">{props.xp}</BoardItem>
          <BoardItem title="Health">{props.health}</BoardItem>
          <BoardItem title="Level">{props.level}</BoardItem>
@@ -110,7 +115,7 @@ class Player extends React.Component {
       }
    }
    componentWillReceiveProps(nextProps){
-     console.log("Player receives props", nextProps)
+     //console.log("Player receives props", nextProps)
      if (nextProps.direction!==this.state.facing && nextProps.direction!=="none"){
        this.setState({facing: nextProps.direction})
      }
@@ -120,9 +125,7 @@ class Player extends React.Component {
    }
   render() {
     var x = this.props.XY[0], y = this.props.XY[1];
-    var points, offsetX, offsetY, way=this.state.facing;
-
-    offsetX = offsetY = 0;
+    var points, way=this.state.facing;
 
     points = (way === "north") ? [x, y, (x - 1), y, x, (y - 1), (x + 1), y] : 
     (way === "south") ? [x, y, (x - 1), y, x, y + 1, (x + 1), (y)] : 
@@ -163,13 +166,7 @@ class ItemContainer extends React.Component{
 }
 
 class PlayMap extends React.Component{
-   constructor(props){
-      super(props);   
-      this.state={
-        walls: this.props.walls,
-        rooms: this.props.rooms
-      };
-   }
+
    componentWillMount(){
     console.log("PlayMap Mount", this.props)
    }
@@ -193,21 +190,20 @@ class PlayMap extends React.Component{
    }
       render (){ 
 // must find a way to not render walls after first making them...
-       const walls=this.state.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
-       const rooms=this.state.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);
-       const items= this.props.items ? this.props.items.map(item=><Item key={item.id} {...item} />) : null
-        var enemies = this.props.enemies.map((enemy) => <Enemy key={enemy.id} {...enemy} />);        
+       const walls=this.props.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
+       const rooms=this.props.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);
+       var enemies = this.props.enemies.map((enemy) => <Enemy key={enemy.id} {...enemy} />);        
 
         /* Darkness is a constant layer for map beyond player 'awareness' */
 
-        const Darkness = ()=> <Rect x={0} y={0} width={w} fill="black" height={h}/>
+        const Darkness = ()=> <Rect x={0} y={0} width={smallerSize} fill="black" height={h}/>
 
         /* PlayerVisionWindow component clips map and objects outside of player 'awareness' */
         const window=this.makeWindow();
 
-        console.log("PlayMap renders", this.props)
+   //     console.log("PlayMap renders", this.props)
         return (
-          <Stage className="canvas" width={w} height={h} scale={{ x: scale, y: scale }} onClick={this.handleClick}>
+          <Stage className="canvas" width={smallerSize} height={smallerSize} scale={{ x: scale, y: scale }} onClick={this.handleClick}>
             <Layer >
               <Darkness />
             </Layer>
@@ -217,7 +213,7 @@ class PlayMap extends React.Component{
                 <Group>
                   {walls}
                   {rooms}
-                  {items}
+                  <ItemContainer items={this.props.items}/>
                   {enemies} 
                 </Group>
               </Layer>
@@ -234,12 +230,13 @@ export class App extends React.Component{
          player: Board.stuff.player,
          x: 100,
          y: 100,
-         walls: Board.map.walls,
-         rooms: Board.map.rooms,
-         wallCheck: Board.wallCheck,
-         enemies: Board.stuff.enemies,
-         items: Board.stuff.mapItems,
-         goFrame: "true",
+         gameMessage: "Welcome to the Dungeon!",
+         walls: [],
+         rooms: [],
+         wallCheck: null,
+         enemies: [],
+         items: [],
+         intervalID: null,
          dark: "true"
       })
       this.checkSpot=this.checkSpot.bind(this);
@@ -250,17 +247,15 @@ export class App extends React.Component{
       this.startBoard=this.startBoard.bind(this);
    }
    componentWillMount(){
-      Board.initialize();
-      this.setState({wallCheck: Board.wallCheck})
+     this.newGame();
    }
    componentDidMount(){
+      this.textInput.focus()
       console.log("APP didMount",this.state);
-      var c=this.state;
-      this.doFrame(100, 100, c.player, c.enemies, c.items, "true")
    }
    
    startBoard(){ //to trigger on tap...
-      if (this.state.goFrame==="false"){
+      if (this.state.intervalID===null){
          Board.initialize(this.state.player.level);
       this.setState({
          gameMessage: null,
@@ -269,13 +264,31 @@ export class App extends React.Component{
          enemies: Board.stuff.enemies,
          items: Board.stuff.mapItems,
          wallCheck: Board.wallCheck,
-         goFrame: "true"
-      })
-      var c=this.state; 
-      this.doFrame(100, 100, c.player, c.enemies, c.items, "true");
+      });
+      this.togglePlay();
       }
    }
- 
+   newGame(){
+     Board.reset();
+     this.setState({
+       player: Board.stuff.player,
+      x: 100,
+      y: 100
+    })
+     this.startBoard();
+   }
+   togglePlay(e){
+    //      console.log("togglePlay")
+    if (this.state.intervalID===null){
+      var intervalID=setInterval(() => this.doFrame()
+      , frameLength)
+      this.setState({  intervalID: intervalID  } );
+
+      } else {
+          clearInterval(this.state.intervalID);
+       this.setState({intervalID: null});
+    }
+ }
    
    boardComplete(player,enemies){
     var calculateXP = function(){
@@ -284,7 +297,7 @@ export class App extends React.Component{
          return Math.round(boardXP);       
       }
       
-      var levelUp = function(xp){
+      var checkLevel = function(xp){
          var nextLevelXP= Board.stuff.levelData[player.level+1]['xp'];
          var nextLevelHealth = Board.stuff.levelData[player.level+1]['health'];
          
@@ -293,28 +306,27 @@ export class App extends React.Component{
             player.health=(nextLevelHealth);
             return true; 
          }
-
+          return false;
       } 
-      
+
       var newXP=calculateXP();
-      
-      player.xp+=newXP
-      
-      var message="Board complete, "+ newXP +"xp awarded." + 
-      levelUp(newXP) ? "You have acheived level "+ player.level+"!"
-         : ""
+      let newLevel=checkLevel(newXP);
+      player.xp+=newXP;
+
+     var message = "Board complete, " + newXP + "xp awarded.";
+
+      message+= newLevel ? "You have acheived level " + player.level + "!" : ""
 
       console.log("boardComplete...")
       this.setState({
          gameMessage: message,
          player: player,
-         goFrame: "false"
       });
    }
    checkSpot(x,y){  // returns wall, items and location of x,y coordinates...
       var wallCheck=this.state.wallCheck;
-      if (Array.isArray(x)){y=x[1] ; x=x[0]} //works with directionCoordinates too!
-      var wall, enemy, item;
+      if (Array.isArray( x ) )   {y=x[1] ; x=x[0]} //works with directionCoordinates array ([x,y])too!
+      var wall, enemy, item; 
       if (wallCheck['row'+y]>maxHeight-1 || x>maxWidth){ // make sure things can't go out of range!
          return {wall: "wall"}
       }
@@ -335,76 +347,69 @@ export class App extends React.Component{
       return {wall: wall, enemy: enemy, item: item[0]};
    }
 
-   togglePlay(){
-      var toggle=this.state.goFrame;
-      toggle==="true" ? toggle="false" : toggle="true" 
-      this.setState({goFrame: toggle})
-      console.log("toggle", toggle)
-      if (toggle==="true"){
-         var obj=this.state;
-          setTimeout(() => {this.doFrame(obj.x, obj.y, obj.player, obj.enemies,"true")}, frameLength)
-      }
-   }
    
    toggleDark(){
       var toggle=this.state.dark;
       toggle==="true" ? toggle="false" : toggle="true" 
       this.setState({dark: toggle});
    }
-   onKeyDown(e){
-      var keyCode=e.keyCode, command, direction;
-      console.log("onKeyDown keyCode", e.keyCode)
-      keyCode===40|| keyCode===98  ? direction = "south"
-      : keyCode===38|| keyCode===104 ? direction = "north"
-      : keyCode===37|| keyCode===100 ? direction = "west"
-      : keyCode===39|| keyCode===102 ? direction = "east" 
-      : keyCode===101 ? direction="none"
-      : keyCode===80 ? command="pause" // the "p" key
-      : command=false;
-
-      
-      if (command){
-         if (command==="pause"){
-            this.togglePlay()
-         }
-      } else {
-         this.setState({direction: direction})
-      }
-      if (this.state.enemies===0){
+  onKeyDown(e) {
+    var keyCode = e.keyCode, command, direction;
+    // console.log("onKeyDown keyCode", e.keyCode)
+    if (this.state.intervalID === null) {
+      if (this.state.gameMessage !==null) {
         this.startBoard();
-        
+      } else {
+        this.togglePlay();
       }
+    } else {
+
+      keyCode === 40 || keyCode === 98 ? direction = "south" : 
+      keyCode === 38 || keyCode === 104 ? direction = "north" : 
+      keyCode === 37 || keyCode === 100 ? direction = "west" : 
+      keyCode === 39 || keyCode === 102 ? direction = "east" : 
+      keyCode === 80 ? command = "pause" // the "p" key
+                  : direction="none" ;
+
+      if (command) {
+        if (command === "pause") {
+          this.togglePlay()
+        }
+      } else {
+        this.setState({ direction: direction })
+      }
+    }
    }
    
-   doFrame(x,y, player, enemies, items, start){
-      // this function triggers all gameplay calculations.
-      //...It gets called by this.startBoard(), and also by this.togglePlay();  
-      // and of course calls itself every frameLength (until end of board or togglePlay.)  
-      //  It  passes the most current data through calculatePlayer and calculateEnemies 
-      // until the end of doFrame where it does one setState and re-calls itself.
-      
-      // calculate player(including updating enemy health);
-      
-      var obj=this.calculatePlayer(x, y, player,enemies, items)
- 
-      // calculate enemy moves... calculateEnemies(position) calculate player Health
-      var eObj=this.calculateEnemies(obj.x, obj.y, obj.player, obj.enemies)
-      
-      if (eObj.player.health<1){
-         this.setState({gameMessage: "GAME OVER"})
-         
-      } else { 
-         // Passed to setState at each frame (so that react components update.)
-         this.setState({x: obj.x, y: obj.y,
-                        player: eObj.player, enemies: eObj.enemies, items: obj.items})
+  doFrame() {
+    // this function triggers all gameplay calculations.
+    //...It gets called by this.startBoard(), and also by this.togglePlay();
+    //  It calculates one frame by passing current data to  calculatePlayer and calculateEnemies 
+    let x = this.state.x, y = this.state.y,
+      player = this.state.player,
+      enemies = this.state.enemies,
+      items = this.state.items;
 
-         //finally,the doFrame recursively calls itself, passing the variables to the next frame...
-         if (this.state.goFrame==="true" || start==="true"){
-            setTimeout(() => {this.doFrame(obj.x, obj.y, 
-                                           eObj.player, eObj.enemies,obj.items)}, frameLength)
-         }
-      }
-   }
+    // calculate player(including updating enemy health);
+
+    var obj = this.calculatePlayer(x, y, player, enemies, items)
+
+    // calculate enemy position, attack and total dead enemies, plus player health... 
+
+    var eObj = this.calculateEnemies(obj.x, obj.y, obj.player, obj.enemies)
+
+    if (eObj.player.health < 1) {                   // If player is dead! 
+      this.togglePlay();
+      this.setState({ gameMessage: "GAME OVER" })
+
+    } else {                                        // otherwise update state.
+      this.setState({
+        x: obj.x, y: obj.y,
+        player: eObj.player, enemies: eObj.enemies, items: obj.items
+      })
+    }
+  }
+
    enemyMove(x,y,direction){ //ensures no collisions!
      // console.log("enemyMove", direction)
       var here=directionCoordinates(x, y, direction);
@@ -415,9 +420,8 @@ export class App extends React.Component{
          lastCheck=this.checkSpot(here);
       }  // return final coordinates to calculateEnemies.
       return {x: here[0], y: here[1], direction: direction}
-   }
-      
-      
+   } 
+
    calculateEnemies(playerX,playerY, player, enemies){ //enemy move and attack calculations.  
       var deadEnemies=0;
 
@@ -426,8 +430,10 @@ export class App extends React.Component{
          
          if (health<1){  // check for life! 
             deadEnemies++;
-            if (deadEnemies===enemies.length){ // check for all dead enemies!
+            if (deadEnemies===enemies.length){ // if all dead enemies, boardComplete!
+               this.togglePlay();
                this.boardComplete(player, enemies);
+               return;
             } 
          } else {
             frame++;
@@ -521,6 +527,7 @@ export class App extends React.Component{
             x=ahead[0];
             y=ahead[1];
          }
+
          ahead=directionCoordinates(x,y,direction);  //2nd attack check after move!
          checkAhead=this.checkSpot(ahead);
          if (checkAhead.enemy.length===1 ){
@@ -536,12 +543,15 @@ export class App extends React.Component{
 
 
          return (
-            <div onKeyDown={this.onKeyDown} style={{width: smallerSize, height: smallerSize}}>
+            <div id="game" tabIndex="1" ref={(input) => { this.textInput = input; }} onKeyDown={this.onKeyDown}
+              style={{width: smallerSize, height: smallerSize}}>
+
                <GameMessage text={this.state.gameMessage} />
+
                <ScoreBoard xp={this.state.player.xp} level={this.state.player.level} health={this.state.player.health} weapon={this.state.player.weapon}/>
-               <PlayMap enemies={this.state.enemies} items={this.state.items} walls={this.state.walls} wallCheck={this.state.wallCheck} dark={this.state.dark} playerXY={[this.state.x,this.state.y]} 
-               rooms={this.state.rooms} direction={this.state.direction} awareness={this.state.player.awareness} startBoard={this.startBoard}/>
-              
+               
+               <PlayMap enemies={this.state.enemies} items={this.state.items} walls={this.state.walls} dark={this.state.dark} playerXY={[this.state.x,this.state.y]} 
+               rooms={this.state.rooms} direction={this.state.direction} awareness={this.state.player.awareness} />
                <input type="button" value="toggle Darkness" onClick={this.toggleDark}/>
             </div>
          );

@@ -40,17 +40,24 @@ var Board = {
 
     },
 
-    initialize: function (level = 1) {
+    initialize: function (level = 0) {
         this.reset(); // reset enemies, items, walls, and wallCheck.
         // currently makes (square) building...
-        // BoardLevel Equations... level+1 can be the roomCount...
-        var roomCount = (level + 5);
+        // BoardLevel Equations...
+        
+        var Building={};
 
-        // center the building, make appropriate size for level...
-        //var offset = (200 - side) / 2;
+        // make appropriate size for level...
+        var size= Board.map.maxWidth/2 + level * 10
+
+        // increase rooms per level...
+        Building.roomCount = level
+
+        Building.width = size < Board.map.maxWidth - 2 ? size : Board.map.maxWidth-2
+        Building.height = Building.width
 
         // create a map, (Board.map)
-        Board.map.createDungeon(roomCount);
+        Board.map.createBuilding(Building);
         console.log(Board)
 
         // Initialize items and enemies...
@@ -73,6 +80,8 @@ var Board = {
 
 
 Board.map = {
+    maxWidth: 200, 
+    maxHeight: 200,
     walls: [],
     rooms: [], // acts as a buffer while making building...
     entrances: [], // absolute position for positioning walls!
@@ -146,55 +155,73 @@ Board.map = {
         return largest
 
     },
-    createDungeon(roomCount) {
-        const room = this.createRoom(0, 0, 200, 199, 1);
+    createBuilding( building ) {
+        const width = building.width ? building.width : this.maxWidth - 2
+        const height = building.height ? building.height: this.maxHeight - 2
+        // 
+        const x= building.x ? building.x : .5 * ( this.maxHeight - height )
+        const y = building.y ? building.y : .5 * ( this.maxWidth - width )
+        const entranceCount = building.entranceCount ? building.entranceCount
+         : width === this.maxWidth-2 ? 0 : 
+         getRandomInt(1,8) 
+        const roomCount = building.roomCount ? building.roomCount : 0
+
+        const room = this.createRoom(x, y, width, 
+            height, entranceCount);
         this._pushWalls(room);
-        for (let i = 0; i < roomCount; i++) {
+        for (let i = 0; i < building.roomCount; i++) {
             let largest = this.findLargestRoom();
             Board.map.splitRoom(largest);
 
             console.log("Create Dungeon,", i, " largest room", largest)
         };
     },
-    _pushWalls: function (room) { // pushes room's exterior walls to wall array.
+    _pushWalls: function (room) { // pushes room's exterior walls to wall and wallCheck arrays.
         var startX = room.startXY[0],
             startY = room.startXY[1],
             width = room.width,
             height = room.height,
             entrances = room.entrances;
+        let tempArray = [];
         console.log("_pushWalls", room)
         var ids = {
             roomID: room.roomID,
             Level: Board.Level,
         };
-        Board.map.walls.push(Object.assign({
+        tempArray.push(Object.assign({
             wall: "north",
             startXY: [startX, startY],
             width: width,
             entrances: entrances["north"],
             id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
-        Board.map.walls.push(Object.assign({
+        tempArray.push(Object.assign({
             wall: "south",
             startXY: [startX, startY + height],
             width: width,
             entrances: entrances["south"],
             id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
-        Board.map.walls.push(Object.assign({
+        tempArray.push(Object.assign({
             wall: "west",
             startXY: [startX, startY],
             height: height,
             entrances: entrances["west"],
             id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
-        Board.map.walls.push(Object.assign({
+        tempArray.push(Object.assign({
             wall: "east",
             startXY: [startX + width, startY],
             height: height,
             entrances: entrances["east"],
             id: Board.Level + "exteriorWall" + this.walls.length
         }, ids));
+
+        // now add them to the walls array and wallCheck obj.
+        tempArray.forEach(wall=>{
+            Board.map.walls.push(wall);
+            this._mapWall(wall);
+        });
     },
     _addEntrance: function (room, wall, entrance) {
         const entranceWidth=Board.map.entranceWidth, roomMargin = Board.map.roomMargin
@@ -427,9 +454,8 @@ Board.map = {
     },
 
     reset: function () {
-
-        this.walls.length = 0;
-        this.rooms.length = 0;
+        Board.map.walls.length = 0;
+        Board.map.rooms.length = 0;
         this.buildings.length = 0;
         console.log("maps.reset run!", this)
     }

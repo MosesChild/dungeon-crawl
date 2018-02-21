@@ -4,9 +4,6 @@ body {
   margin: 0 0;
   padding: 0 0; }
 
-#board {
-  position: absolute; }
-
 .boardItem {
   display: inline-block;
   width: 25%;
@@ -16,8 +13,9 @@ body {
     margin: 0;
     padding: 0; }
 
-.room {
-  background: "black"; }
+#root {
+  display: flex;
+  justify-content: center; }
 
 #warning {
   position: fixed;
