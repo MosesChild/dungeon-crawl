@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './dungeon.css';
 //import {ShowMap} from './mapMaker';
-import {App} from './game';
+import {App} from './game';                         
 
 
 

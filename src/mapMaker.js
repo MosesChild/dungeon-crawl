@@ -1,9 +1,9 @@
-import React, { Component } from 'react';
-import ReactKonva from 'react-konva';
-import Board from './board'
+import React from "react";
+import ReactKonva from "react-konva";
+import Board from "./board";
 
 const maxWidth=200, maxHeight=200;
-const {Layer, Rect, Line, Stage, Group, Text} = ReactKonva; 
+const { Line, Group, Text} = ReactKonva; 
 
 
 
@@ -15,38 +15,30 @@ var h = .92* Math.max(document.documentElement.clientHeight, window.innerHeight 
 
 //subtract size of BoardItems & ToggleDarkness
 const debug=true;
-var biggerSize = w > h ? w : h 
-var smallerSize = w < h ? w : h
-var scale=smallerSize/maxWidth;
 
-console.log("Mapmaker has loaded Board... ", Board);
+var smallerSize = w < h ? w : h;
+var scale=smallerSize/maxWidth;
+                                
 
 export function MakeRoom(props) {
-  //  console.log("MakeRoom", props);
-    let textX = props.startXY[0], labels, fontSize, textY;
-    props.width > props.height ? fontSize=props.height : fontSize=props.width
-    fontSize<props.height ?
-        textY = props.startXY[1] + ( props.height - fontSize ) / 2 
-      : textY = props.startXY[1]
-    if (debug === true) {
-        labels = (<Text x={textX} y={textY} width={props.width} 
-            text={props.roomID.toString(10)} fill='blue' align='center'
-            fontSize={fontSize} fontStyle="bold" opacity={.1}/>);
+    //console.log("MakeRoom", props);
+    const fontSize= props.width > props.height ? props.height : props.width;
+    const text = props.roomID.toString(10);
+    const yAxis = props.width > props.height ?props.startXY[1] + ( props.height - fontSize ) / 2 
+        : props.startXY[1];
+    if (debug) {
+        return (<Text x={props.startXY[0]} y={yAxis} width={props.width} text={text} fill='blue' align='center'
+            fontSize={fontSize} fontStyle="bold" opacity={0.1}/>);
     }
-
-    return (<Group>
-        {labels}
-    </Group>);
-
+    return null;
 }
-
 
 export class MakeWall extends React.Component {
     constructor(props){
         super(props);
         this.state={dash: null,
-                    points: null,
-                    rotation: null};
+            points: null,
+            rotation: null};
     }
     componentWillMount(){
         // create 'dash' array to show wall entrances...
@@ -55,16 +47,16 @@ export class MakeWall extends React.Component {
         var rotation=0, textX, textY;
         var dash;
  
-          if (this.props.wall==="north" || this.props.wall==="south"){
-            end=this.props.width  
-            endXY = [ startXY[0]+ this.props.width, startXY[1] ]
-            textX = startXY[0]
-            textY = startXY[1]
+        if (this.props.wall==="north" || this.props.wall==="south"){
+            end=this.props.width;  
+            endXY = [ startXY[0]+ this.props.width, startXY[1] ];
+            textX = startXY[0];
+            textY = startXY[1];
 
         } else {
-            end=this.props.height
-            endXY = [ startXY[0], startXY[1]+this.props.height ]
-            textX = startXY[0]
+            end=this.props.height;
+            endXY = [ startXY[0], startXY[1]+this.props.height ];
+            textX = startXY[0];
             textY = startXY[1] + .3 * this.props.height;
             rotation = 90;
         }
@@ -73,10 +65,10 @@ export class MakeWall extends React.Component {
         if (this.props.entrances.length > 0) {
             this.props.entrances.forEach(
                 (entrance) => {
-                    dash.push(entrance - pointer)
-                    dash.push(entranceWidth)
+                    dash.push(entrance - pointer);
+                    dash.push(entranceWidth);
                     pointer = entrance + entranceWidth;
-                })
+                });
         }
         dash.push(end - pointer);
 
@@ -86,62 +78,27 @@ export class MakeWall extends React.Component {
             points: points,
             dash: dash,
             rotation: rotation
-        })
-        console.log("MakeWall Mount",this.props, "dash", dash, this.props.id)
+        });
     }
     shouldComponentUpdate(nextProps,nextState){
-        return !nextState.points!=null
+        return !nextState.points!=null;
     }
 
-   //will receive startXY, "wall", and entrance array...
-render(){
-    let debug=false;
-    var color="red", strokeWidth=.5;
-    let labels;
-    if (debug) {
-        labels = (<Text x={this.props.startXY[0]} y={this.props.startXY[1]} text={this.props.id} fill='green'
-        fontSize={10} rotation={this.state.rotation} />)
-    }
+    //will receive startXY, "wall", and entrance array...
+    render(){
+        let debug=false;
+        var color="red", strokeWidth=.5;
+        let labels;
+        if (debug) {
+            labels = (<Text x={this.props.startXY[0]} y={this.props.startXY[1]} text={this.props.id} fill='green'
+                fontSize={10} rotation={this.state.rotation} />);
+        }
     
 
-      return (<Group>
-          <Line points={this.state.points} dash={this.state.dash} stroke={color} strokeWidth={strokeWidth}
-         lineCap='round' lineJoin='round' />
+        return (<Group>
+            <Line points={this.state.points} dash={this.state.dash} stroke={color} strokeWidth={strokeWidth}
+                lineCap='round' lineJoin='round' />
             {labels}
         </Group>);
-   }
+    }
 }
-
-
-                             
-class ShowMap extends Component{
-   constructor(props){
-      super(props);   
-      this.state={walls: [], rooms: []}
-      this.handleClick=this.handleClick.bind(this);
-   }
-   handleClick(e){   
-      console.log("updated")
-      Board.initialize(1);
-      this.setState({walls: Board.map.walls,
-                     rooms: Board.map.rooms})
-      console.log(e.evt.offsetX, e.evt.offsetY, e.evt.offsetX/scale, e.evt.offsetY/scale);
-   }
-   render (){ 
-      var walls=this.state.walls.map((wall,index)=><MakeWall key={wall.id} {...wall}/>);
-      var rooms=this.state.rooms.map((room,index)=><MakeRoom key={room.id} {...room}/>);                   
-      return (       
-         <Stage width={w} height={h} scale={{x: scale, y: scale}} onClick={this.handleClick}>
-            <Layer>
-               <Rect width={maxWidth} height={maxHeight} fill="gray"/>
-            {walls}
-            {rooms}
-            </Layer>
-         </Stage>  );
-   } //
-}
-
-
-
-
-
