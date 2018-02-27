@@ -2,22 +2,8 @@ import React from "react";
 import ReactKonva from "react-konva";
 import Board from "./board";
 
-const maxWidth=200, maxHeight=200;
 const { Line, Group, Text} = ReactKonva; 
-
-
-
-// scale... we need to scale player board 200*200 to a canvas
-// start by determining viewPort
-
-var w = .98* Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-var h = .92* Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-
-//subtract size of BoardItems & ToggleDarkness
 const debug=true;
-
-var smallerSize = w < h ? w : h;
-var scale=smallerSize/maxWidth;
                                 
 
 export function MakeRoom(props) {

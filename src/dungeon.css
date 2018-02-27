@@ -4,10 +4,12 @@ body {
   margin: 0 0;
   padding: 0 0;
   background: black;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; }
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
 
 #game {
-  border: 1px solid maroon; }
+  border: 1px solid maroon;
+}
 
 .boardItem {
   background: maroon;
@@ -15,22 +17,31 @@ body {
   width: 25%;
   height: 5%;
   text-align: center;
-  font-weight: bold; }
-  .boardItem p:nth-child(1) {
-    color: yellow;
-    font-style: italic;
-    font-size: 20px; }
-  .boardItem p:nth-child(2) {
-    margin: 0px;
-    line-height: 1.8;
-    background: yellow; }
+  font-weight: bold;
+}
+
+.boardItem p:nth-child(1) {
+  color: yellow;
+  font-style: italic;
+  font-size: 20px;
+}
+
+.boardItem p:nth-child(2) {
+  margin: 0px;
+  line-height: 1.8;
+  background: yellow;
+}
 
 #root {
   display: flex;
-  justify-content: center; }
+  justify-content: center;
+}
 
 button {
-  height: 2%; }
+  height: 2%;
+  color: white;
+  background: maroon;
+}
 
 .GameMessage {
   font-family: 'Open Sans', sans-serif;
@@ -44,4 +55,6 @@ button {
   top: 40%;
   left: 20%;
   z-index: 3;
-  opacity: .7; }
+  opacity: .7;
+}
+/*# sourceMappingURL=dungeon.css.map */

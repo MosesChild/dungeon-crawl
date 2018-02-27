@@ -11,35 +11,18 @@ import {
 var Board = {
     // all the functions  (ReactApp) Dungeon-Crawl requires to build State arrays for a map with creatures and items.
     wallCheck: {}, // object stores wall coordinates by row...
-    Level: 0, // counter to generate ID's Boards.
+    boardID: 0, // counter to generate ID's Boards.
+    messageKeyFreeze: 3000,
     //var player1=new Board.stuff.MakePlayer();
 
-    reset: function() {
+    reset: function() {  // reset enemies, items, walls, and wallCheck.
         this.wallCheck = {};
         Board.map.walls.length = 0;
         Board.map.rooms.length = 0;
-        console.log("resetRun");
         Board.stuff.reset();
     },
 
-    placeThing: function() {
-        // random location, random room [x,y] generator.
-        var pickRandomRoom = function() {
-            return Board.map.rooms[getRandomInt(0, Board.map.rooms.length - 1)];
-        };
-
-        var randomRoom = pickRandomRoom();
-        //  console.log("randomRoom", randomRoom)
-        var x = randomRoom.startXY[0],
-            y = randomRoom.startXY[1];
-
-        x = x + getRandomInt(1, randomRoom.width - 2);
-        y = y + getRandomInt(1, randomRoom.height - 2);
-
-        return [x, y];
-    },
-
-    initialize: function(level = 0) {
+    initialize: function() {
         this.reset(); // reset enemies, items, walls, and wallCheck.
         // currently makes (square) building...
         // BoardLevel Equations...
@@ -47,9 +30,9 @@ var Board = {
         var Building = {};
 
         // make appropriate size for level...
-        var size = Board.map.maxWidth / 2 + level * 10;
+        var size = Board.map.maxWidth / 2 + Board.boardID * 10;
         // increase rooms per level...
-        Building.roomCount = level;
+        Building.roomCount = Board.boardID;
 
         Building.width =
             size < Board.map.maxWidth - 2 ? size : Board.map.maxWidth - 2;
@@ -60,27 +43,29 @@ var Board = {
 
         // push all walls to wallCheck array.
         Board.map.walls.forEach(wall => Board.map._mapWall(wall));
+        
+        Board.boardID++;
         // Initialize items and enemies...
         // Distribute  health across potions in different locations.
-        Board.stuff.distributeItems("health", level * 5);
+
+        Board.stuff.distributeItems("health", Board.boardID * 5);
 
         Board.stuff.addRandomItem(); // awareness, random weapon or nothing!
 
         // Enemies generated based on next level.
-        Board.stuff.makeEnemies(this.Level, "ant"); // 1 ant per new Board.
-        Board.stuff.makeEnemies(level, "orc"); // two orcs per Player level...
-
-        Board.Level++;
+        Board.stuff.makeEnemies(Board.boardID, "ant"); // 1 ant per new Board.
+        Board.stuff.makeEnemies(Board.boardID, "orc"); // two orcs per Player level...
+        return Board.stuff.enemies;
     }
 };
 
 Board.map = {
-    maxWidth: 200,
-    maxHeight: 200,
+    maxWidth:  200,
+    maxHeight:  200 ,
     walls: [],
     rooms: [], // used to place things...
-    entrances: [], // absolute position for positioning walls!
-    // console.log("Board", Board.Level, Board);
+
+    // console.log("Board", Board.boardID, Board);
     buildings: [],
     roomMargin: 3,
     entranceWidth: 3,
@@ -168,7 +153,7 @@ Board.map = {
         // console.log("_pushWalls", room);
         var ids = {
             roomID: room.roomID,
-            Level: Board.Level
+            Level: Board.boardID
         };
         Board.map.walls.push(
             Object.assign(
@@ -177,7 +162,7 @@ Board.map = {
                     startXY: [startX, startY],
                     width: width,
                     entrances: entrances.north,
-                    id: Board.Level + "exteriorWall" + this.walls.length
+                    id: Board.boardID + "exteriorWall" + this.walls.length
                 },  ids
             )
         );
@@ -188,7 +173,7 @@ Board.map = {
                     startXY: [startX, startY + height],
                     width: width,
                     entrances: entrances.south,
-                    id: Board.Level + "exteriorWall" + this.walls.length
+                    id: Board.boardID + "exteriorWall" + this.walls.length
                 },
                 ids
             )
@@ -200,7 +185,7 @@ Board.map = {
                     startXY: [startX, startY],
                     height: height,
                     entrances: entrances.west,
-                    id: Board.Level + "exteriorWall" + this.walls.length
+                    id: Board.boardID + "exteriorWall" + this.walls.length
                 },
                 ids
             )
@@ -212,7 +197,7 @@ Board.map = {
                     startXY: [startX + width, startY],
                     height: height,
                     entrances: entrances.east,
-                    id: Board.Level + "exteriorWall" + this.walls.length
+                    id: Board.boardID + "exteriorWall" + this.walls.length
                 },
                 ids
             )
@@ -275,7 +260,7 @@ Board.map = {
 
         var room2 = { roomID: Board.map.rooms.length, entrances: {} };
         const newWall = {
-            id: Board.Level + "interiorWall" + room2.roomID
+            id: Board.boardID + "interiorWall" + room2.roomID
         };
 
         //  Create random arguments (room, axis, splitpoint) if necessary...
@@ -408,10 +393,8 @@ Board.map = {
         }
         // removeEntrances...
         entrances.forEach(entrance => removeEntrance(axis, entrance));
-    },
-    assignBuildingID: function() {
-        return Board.map.buildingID++;
     }
+    
 };
 
 Board.stuff = (function() {
@@ -479,7 +462,7 @@ Board.stuff = (function() {
         var enemyCount = Board.stuff.enemyCount;
         for (var i = enemyCount; i < count + enemyCount; i++) {
             console.log("enemyCount", enemyCount, i);
-            var location = Board.placeThing();
+            var location = my.placeThing();
             var stuff = my.enemyType[type];
             console.log(
                 "count",
@@ -496,7 +479,7 @@ Board.stuff = (function() {
                 Object.assign(
                     {
                         frame: 0,
-                        id: Board.Level + "enemy" + i,
+                        id: Board.boardID + "enemy" + i,
                         x: location[0],
                         y: location[1],
                         direction: randomDirection()
@@ -509,19 +492,34 @@ Board.stuff = (function() {
     };
     my.addItem = function(type, value) {
         var item = {},
-            location = Board.placeThing();
+            location = my.placeThing();
         console.log(my.mapItems, "mapItems", my.mapItems.length);
         item.id =
             my.mapItems.length !== 0
-                ? Board.Level + "item" + my.mapItems.length
-                : Board.Level + "item0";
+                ? Board.boardID + "item" + my.mapItems.length
+                : Board.boardID + "item0";
         item.value = value;
         item.type = type;
         item.x = location[0];
         item.y = location[1];
         my.mapItems.push(item);
     };
+    my.placeThing= function() {
+        // random location, random room [x,y] generator.
+        var pickRandomRoom = function() {
+            return Board.map.rooms[getRandomInt(0, Board.map.rooms.length - 1)];
+        };
 
+        var randomRoom = pickRandomRoom();
+        //  console.log("randomRoom", randomRoom)
+        var x = randomRoom.startXY[0],
+            y = randomRoom.startXY[1];
+
+        x = x + getRandomInt(1, randomRoom.width - 2);
+        y = y + getRandomInt(1, randomRoom.height - 2);
+
+        return [x, y];
+    },
     my.distributeItems = function(type, totalValue, min = 3, max = 6) {
         // distribute items of random value (min to max) up to a total value...
         var count = 0,
