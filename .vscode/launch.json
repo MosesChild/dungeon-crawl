@@ -1,15 +1,18 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [
-    
-        {
-            "type": "node",
+    "compilerOptions": {
+        "target": "ES6"
+    },
+    "exclude": [
+        "node_modules",
+        "**/node_modules/*"
+    ],
+    "configurations": [{
+            "name": "Chrome",
+            "type": "chrome",
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceFolder}\\start"
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceRoot}/src"
         }
     ]
 }

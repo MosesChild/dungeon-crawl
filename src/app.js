@@ -35,7 +35,7 @@ export class App extends React.Component {
         this.doFrame = this.doFrame.bind(this);
         this.togglePlay = this.togglePlay.bind(this);
         this.toggleDark = this.toggleDark.bind(this);
-        this.initializeBoard = this.initializeBoard.bind(this);
+        this.startBoard = this.startBoard.bind(this);
     }
     componentWillMount() {
         this.newGame();
@@ -45,24 +45,26 @@ export class App extends React.Component {
         console.log("APP didMount", this.state);
     }
 
-    initializeBoard() {
+    startBoard() {
         //  shows new Board... triggered by boardComplete or newGame
         //to trigger on tap...
-        Board.initialize();
         this.setState({
             //    direction: "none",
-            walls: Board.map.walls,
-            rooms: Board.map.rooms,
-            enemies: Board.stuff.enemies,
-            items: Board.stuff.mapItems,
-            wallCheck: Board.wallCheck
+            gameMessage: "",
+            walls: [...Board.map.walls],
+            rooms: [...Board.map.rooms,],
+            enemies: [...Board.stuff.enemies],
+            items: [...Board.stuff.mapItems],
+            wallCheck: {...Board.wallCheck}
         });
     }
 
     newGame() {
         //Board init, Game Message, Player init,  board start...
         this.messagePause();
+
         Board.boardID = 0;
+        Board.initialize(this.state.player.level);
         this.setState({
             gameMessage: "Welcome to the Dungeon!",
             player: { ...Board.stuff.player },
@@ -70,11 +72,12 @@ export class App extends React.Component {
             x: 100,
             y: 100
         });
-        this.initializeBoard();
+
+        //this.startBoard();
         // show.level
     }
 
-    togglePlay(e) {
+    togglePlay() {
         if (this.state.intervalID === null) {
             var intervalID = setInterval(
                 () => this.doFrame(),
@@ -91,13 +94,19 @@ export class App extends React.Component {
     }
     gameOver() {
         this.setState({ gameMessage: "GAME OVER" });
-        this.messagePause();
+        //this.togglePlay();
+        this.messagePause(this.newGame);
     }
 
-    messagePause(millis = 3000) {
+    messagePause(millis = 3000, callback) {
         this.setState({
             messagePause: setTimeout(
-                () => this.setState({ messagePause: null }),
+                () =>{ 
+                    this.setState({ messagePause: null });
+                    if (callback){ 
+                        callback(); 
+                    }
+                },
                 millis
             )
         });
@@ -142,7 +151,8 @@ export class App extends React.Component {
             player: player,
             gameMessage: message
         });
-        this.messagePause();
+        let callback=Board.initialize(this.state.player.level);
+        this.messagePause(callback);
     }
     checkSpot(x, y) {
         // returns wall, items and location of x,y coordinates...
@@ -176,7 +186,7 @@ export class App extends React.Component {
         });
         return { wall: wall, enemy: enemy, item: item[0] };
     }
-    directionCoordinates = function(x, y, direction, optionalDistance) {
+    directionCoordinates(x, y, direction, optionalDistance) {
         if (optionalDistance === undefined) {
             optionalDistance = 1;
         }
@@ -191,7 +201,7 @@ export class App extends React.Component {
         } else direction = "none";
         //console.log("directionCoordinate update", x,y)
         return [x, y, direction];
-    };    
+    }    
 
     toggleDark() {
         var toggle = this.state.dark;
@@ -202,9 +212,15 @@ export class App extends React.Component {
         var keyCode = e.keyCode,
             command,
             direction;
+        if (this.state.gameMessage && this.state.messagePause === null) {    // if there is a message... show the new board
+            this.startBoard();
+        } else if (!this.state.gameMessage && this.state.intervalID === null ) {
+            this.togglePlay();
+        }
 
         if (
-            this.state.intervalID !== null &&
+        // this.state.intervalID !== null &&  // if running... and not in pause...
+            this.state.player.health > 0 && 
             this.state.messagePause === null
         ) {
             keyCode === 40 || keyCode === 98
@@ -226,14 +242,12 @@ export class App extends React.Component {
                     this.togglePlay();
                 }
             }
-        } else if (this.state.gameMessage) {
-            this.setState({ gameMessage: "" });
         }
     }
 
     doFrame() {
         // this function triggers all gameplay calculations.
-        //...It gets called by this.togglePlay();
+        //...It gets called by setInterval on state.intervalID, by this.togglePlay();
 
         let x = this.state.x,
             y = this.state.y,
@@ -249,19 +263,14 @@ export class App extends React.Component {
 
         var eObj = this.calculateEnemies(obj.x, obj.y, obj.player, obj.enemies);
 
-        if (eObj.player.health < 1) {
-            // If player is dead!
-            this.gameOver();
-        } else {
-            // otherwise update state.
-            this.setState({
-                x: obj.x,
-                y: obj.y,
-                player: eObj.player,
-                enemies: eObj.enemies,
-                items: obj.items
-            });
-        }
+        this.setState({
+            x: obj.x,
+            y: obj.y,
+            player: eObj.player,
+            enemies: eObj.enemies,
+            items: obj.items
+        });
+        
     }
 
     enemyMove(x, y, direction) {
@@ -306,8 +315,14 @@ export class App extends React.Component {
                 const enemyCanMove = frame >= enemy.speed;
 
                 if (enemyCanAttack) {
+
                     player.health -= enemy.damage;
                     frame = 0;
+
+                    if (player.health < 1) {
+
+                        this.gameOver();
+                    }
                 }
 
                 if (enemyCanMove) {
@@ -343,7 +358,7 @@ export class App extends React.Component {
                     };
 
                     const enemyIsAwareOfPlayer =
-                        enemy.awareness >= furtherDistance;
+                        enemy.awareness >= furtherDistance  && player.health > 0 ;
 
                     var move = enemyIsAwareOfPlayer
                         ? pursuePlayer(enemy)
@@ -357,7 +372,7 @@ export class App extends React.Component {
             enemy.frame = frame;
         });
         return { enemies: enemies, player: player };
-    };
+    }
 
     calculatePlayer(x, y, player, enemies, items) {
         var playerDamage = Board.stuff.weapons[player.weapon];
@@ -459,7 +474,6 @@ export class App extends React.Component {
                 />
 
                 <PlayMap
-                    fade={this.state.fade}
                     enemies={this.state.enemies}
                     items={this.state.items}
                     walls={this.state.walls}

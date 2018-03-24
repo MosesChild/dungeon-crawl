@@ -3,9 +3,7 @@ import {
     getRandomInt,
     randomDirection,
     joinArrays,
-    // arraySubtract,
     doOdds
-    //  doIt
 } from "./firstModule";
 
 var Board = {
@@ -22,7 +20,7 @@ var Board = {
         Board.stuff.reset();
     },
 
-    initialize: function() {
+    initialize: function(playerLevel) {
         this.reset(); // reset enemies, items, walls, and wallCheck.
         // currently makes (square) building...
         // BoardLevel Equations...
@@ -30,7 +28,7 @@ var Board = {
         var Building = {};
 
         // make appropriate size for level...
-        var size = Board.map.maxWidth / 2 + Board.boardID * 10;
+        var size = 50 + Board.boardID * 10;
         // increase rooms per level...
         Building.roomCount = Board.boardID;
 
@@ -54,7 +52,7 @@ var Board = {
 
         // Enemies generated based on next level.
         Board.stuff.makeEnemies(Board.boardID, "ant"); // 1 ant per new Board.
-        Board.stuff.makeEnemies(Board.boardID, "orc"); // two orcs per Player level...
+        Board.stuff.makeEnemies(playerLevel, "orc"); // two orcs per Player level...
         return Board.stuff.enemies;
     }
 };
@@ -211,12 +209,14 @@ Board.map = {
         return entrances;
     },
     _makeEntrances: function(length, entranceCount) {
-        // if entranceCount left out as many as 1 entrance per 20 spaces.
-        const maxEntrances = Math.max(Math.floor(length / 20), 1);
+        const entranceDensity = 40;  // length of wall required to increase possibility of additional entrance.
+        // if entranceCount left out (current functionality) as many as 1 entrance per EntranceDensity map units.
+        const maxEntrances = Math.max(Math.floor(length / entranceDensity), 1);
         const count = entranceCount? entranceCount : getRandomInt(1, maxEntrances);
         var entrances = [];
         for (let i = 0; i < count; i++) {
-            let entrance= Math.floor( length / count ) * i + getRandomInt(Board.map.roomMargin, 20-Board.map.roomMargin);
+            let entrance= Math.floor( length / count ) * i + 
+            getRandomInt(Board.map.roomMargin, entranceDensity - Board.map.roomMargin);
             entrances.push(entrance);
         }
         console.log("makeEntrances", entrances);

@@ -19,9 +19,10 @@ export class GameMessage extends Component {
                 ? "Press any key to Restart"
                 : "Press any key to continue";
         if (this.props.text !== null) {
+            this.setState({ reminder: "" });
             setTimeout(() => this.setState({ reminder: reminder }), 3000);
         } else {
-            this.setState({ reminder: "" });
+            
         }
     }
     render() {
@@ -214,7 +215,6 @@ class ItemContainer extends Component {
 }
 
 export class PlayMap extends Component {
-    state = { opacity: 0}
     componentWillMount() {
         console.log("PlayMap Mount", this.props);
     }
@@ -265,8 +265,7 @@ export class PlayMap extends Component {
                 className="canvas"
                 width={environmentVars.smallerSize}
                 height={environmentVars.smallerSize}
-                scale={{ x: environmentVars.scale, y: environmentVars.scale }}
-                opacity={this.state.opacity}
+                scale={{ x: environmentVars.scale, y: environmentVars.scale }} 
             >
                 <Layer>
                     <Darkness />
